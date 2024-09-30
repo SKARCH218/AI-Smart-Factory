@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictive Maintenance</title>
+</head>
+<body>
+    <h1>예측 유지보수</h1>
+
+    <label for="time">사용 시간을 입력하세요 (시간):</label>
+    <input type="number" id="time" name="time" step="0.01" required><br><br>
+
+    <label for="wheel-choice">숫돌을 선택하세요:</label>
+    <select id="wheel-choice" name="wheel-choice">
+        <option value="1">A숫돌</option>
+        <option value="2">WA숫돌</option>
+        <option value="3">C숫돌</option>
+        <option value="4">GC숫돌</option>
+    </select><br><br>
+
+    <button onclick="predictReplacement()">교체 예측하기</button>
+
+    <h2>예측 결과:</h2>
+    <div id="result"></div>
+
+    <script>
+        function predictReplacement() {
+            const time = parseFloat(document.getElementById('time').value);
+            const wheel = parseInt(document.getElementById('wheel-choice').value);
+
+            if (isNaN(time) || wheel < 1 || wheel > 4) {
+                alert('올바른 값을 입력하세요.');
+                return;
+            }
+
+            const data = { Time: time, wheel: wheel };
+
+            fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                document.getElementById('result').innerHTML = 
+                    `교체 확률: ${result.probability.toFixed(2)}%`;
+                    `예상교체일: `
+            })
+            .catch(error => console.error('오류:', error));
+        }
+    </script>
+</body>
+</html>
