@@ -49,4 +49,6 @@ pip install numpy
 
 pip install pandas
 
+pip install imblearn
+
 를 입력해서 설치하여주세요!!
