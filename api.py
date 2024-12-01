@@ -1,43 +1,41 @@
+import pandas as pd
 from flask import Flask, request, jsonify
-import csv
-import os
+import datetime
 
 app = Flask(__name__)
 
-# CSV 파일 경로 설정
-csv_file_path = "maintenance_data.csv"
+# 예측 결과를 저장할 CSV 파일 이름
+results_file = 'predictions.csv'
 
-# CSV 파일에 데이터를 추가하는 함수
-def append_to_csv(data):
-    file_exists = os.path.isfile(csv_file_path)
-    with open(csv_file_path, 'a', newline='', encoding='utf-8') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=data.keys())
-        if not file_exists:
-            writer.writeheader()  # 파일이 없을 때 헤더 작성
-        writer.writerow(data)
-
-# CSV 파일에서 데이터를 읽는 함수
-def read_from_csv():
-    if not os.path.isfile(csv_file_path):
-        return []
+@app.route('/save_prediction', methods=['POST'])
+def save_prediction():
+    data = request.get_json()
     
-    with open(csv_file_path, 'r', newline='', encoding='utf-8') as csvfile:
-        reader = csv.DictReader(csvfile)
-        return list(reader)
+    # 예측 결과와 함께 필요한 정보를 추출
+    failure_probability = data['failure_probability']
+    remaining_lifetime = data['remaining_lifetime']
+    start_date = data['startDate']
+    wheel = data['wheel']
 
-# 예측 유지보수 결과를 POST로 저장하는 엔드포인트
-@app.route('/api/save_maintenance', methods=['POST'])
-def save_maintenance():
-    data = request.json
-    append_to_csv(data)
-    return jsonify({"message": "Data saved successfully!"}), 200
+    # 예측 결과를 CSV 파일에 저장
+    results = {
+        'start_date': start_date,
+        'wheel': wheel,
+        'failure_probability': failure_probability,
+        'remaining_lifetime': remaining_lifetime,
+        'prediction_date': datetime.datetime.now().strftime('%Y-%m-%d')
+    }
 
-# 저장된 데이터를 GET으로 불러오는 엔드포인트
-@app.route('/api/get_maintenance', methods=['GET'])
-def get_maintenance():
-    data = read_from_csv()
-    return jsonify(data), 200
+    # 기존 데이터 불러오기 및 추가
+    try:
+        results_df = pd.read_csv(results_file)
+    except FileNotFoundError:
+        results_df = pd.DataFrame(columns=results.keys())
 
-# API 실행
+    results_df = results_df.append(results, ignore_index=True)
+    results_df.to_csv(results_file, index=False)
+
+    return jsonify({'status': 'success', 'message': 'Prediction saved successfully.'}), 200
+
 if __name__ == '__main__':
-    app.run(port=5001, debug=True)  # api.py는 5001 포트 사용
+    app.run(port=5001, debug=True)
